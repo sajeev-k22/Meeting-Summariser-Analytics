@@ -1,0 +1,906 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <!-- Hero Section -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="display-4 fw-bold text-primary mb-4">
+                <i class="fas fa-microphone-alt me-3"></i>
+                Meeting Summarizer & Analytics
+            </h1>
+            <p class="lead mb-4">
+                Transform your meeting recordings into actionable insights with AI-powered transcription, 
+                summarization, and analytics.
+            </p>
+        </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-hover shadow-lg">
+                <div class="card-header gradient-bg text-white">
+                    <h4 class="mb-0"><i class="fas fa-upload me-2"></i>Upload Meeting Recording</h4>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                        <h5>Drag & Drop your audio file here</h5>
+                        <p class="text-muted">or click to browse</p>
+                        <input type="file" id="fileInput" class="d-none" accept=".mp3,.mp4,.wav,.m4a,.flac,.aac,.ogg,.wma">
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-folder-open me-2"></i>Choose File
+                        </button>
+                        <p class="small text-muted mt-2">
+                            Supported formats: MP3, MP4, WAV, M4A, FLAC, AAC, OGG, WMA (Max 500MB)
+                        </p>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress-container mt-3">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <p class="text-center mt-2" id="progressText">Processing...</p>
+                    </div>
+
+                    <!-- Meeting Type Selection -->
+                    <div class="mt-4">
+                        <label for="meetingType" class="form-label">Meeting Type (for better summarization):</label>
+                        <select class="form-select" id="meetingType">
+                            <option value="general">General Meeting</option>
+                            <option value="business">Business Meeting</option>
+                            <option value="team">Team Standup</option>
+                            <option value="interview">Interview</option>
+                            <option value="presentation">Presentation</option>
+                            <option value="training">Training Session</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Recording Section -->
+    <div class="row justify-content-center mt-5">
+        <div class="col-lg-8">
+            <div class="card card-hover shadow-lg">
+                <div class="card-header gradient-bg text-white">
+                    <h4 class="mb-0"><i class="fas fa-podcast me-2"></i>Real-Time Meeting Capture</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        Record directly from your microphone to see live transcription and analytics without uploading a file.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" id="startLiveBtn">
+                            <i class="fas fa-play me-2"></i>Start Listening
+                        </button>
+                        <button class="btn btn-warning" id="pauseLiveBtn" disabled>
+                            <i class="fas fa-pause me-2"></i>Pause
+                        </button>
+                        <button class="btn btn-secondary" id="resumeLiveBtn" disabled>
+                            <i class="fas fa-play me-2"></i>Resume
+                        </button>
+                        <button class="btn btn-danger" id="stopLiveBtn" disabled>
+                            <i class="fas fa-stop me-2"></i>Stop & Analyze
+                        </button>
+                    </div>
+                    <div class="mt-3">
+                        <span class="fw-semibold">Status:</span>
+                        <span id="liveStatus" class="text-secondary">Idle</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="result-section" id="resultSection">
+        <div class="row mt-5">
+            <!-- Transcription -->
+            <div class="col-lg-6">
+                <div class="card card-hover shadow">
+                    <div class="card-header">
+                        <h5><i class="fas fa-file-text me-2"></i>Transcription</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="transcription-content" id="transcriptionContent" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Transcription will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="col-lg-6">
+                <div class="card card-hover shadow">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list-alt me-2"></i>AI Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="summary-content" id="summaryContent" style="max-height: 400px; overflow-y: auto;">
+                            <!-- Summary will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Section -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card card-hover shadow">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Meeting Analytics</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <!-- Metrics -->
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h6>Duration</h6>
+                                    <h4 class="text-primary" id="durationMetric">-</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h6>Word Count</h6>
+                                    <h4 class="text-success" id="wordCountMetric">-</h4>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h6>Sentiment</h6>
+                                    <h4 id="sentimentMetric">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Keywords -->
+                        <div class="mt-4">
+                            <h6>Top Keywords</h6>
+                            <div id="keywordsContainer">
+                                <!-- Keywords will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Word Cloud -->
+                        <div class="mt-4 text-center">
+                            <h6>Word Cloud</h6>
+                            <div id="wordCloudContainer">
+                                <button class="btn btn-outline-primary" onclick="generateWordCloud()">
+                                    <i class="fas fa-cloud me-2"></i>Generate Word Cloud
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <button class="btn btn-success me-3" onclick="generateReport()">
+                    <i class="fas fa-file-pdf me-2"></i>Generate PDF Report
+                </button>
+                <button class="btn btn-info" onclick="exportData()">
+                    <i class="fas fa-download me-2"></i>Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="row mt-5" id="features">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Key Features</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card card-hover text-center">
+                        <div class="card-body">
+                            <i class="fas fa-microphone-alt fa-3x text-primary mb-3"></i>
+                            <h5>Audio Transcription</h5>
+                            <p>Convert audio recordings to text using OpenAI's Whisper model with high accuracy.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-hover text-center">
+                        <div class="card-body">
+                            <i class="fas fa-brain fa-3x text-success mb-3"></i>
+                            <h5>AI Summarization</h5>
+                            <p>Generate comprehensive meeting summaries with key points, action items, and decisions.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-hover text-center">
+                        <div class="card-body">
+                            <i class="fas fa-chart-line fa-3x text-info mb-3"></i>
+                            <h5>Analytics & Insights</h5>
+                            <p>Get detailed analytics including sentiment analysis, keyword extraction, and metrics.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Section -->
+    <div class="row mt-5" id="about">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h3>About This Application</h3>
+                    <p class="lead">
+                        This meeting summarizer and analytics application leverages cutting-edge AI technologies 
+                        to help you extract maximum value from your meeting recordings.
+                    </p>
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <i class="fab fa-python fa-2x text-primary"></i>
+                            <p>Built with Flask</p>
+                        </div>
+                        <div class="col-md-3">
+                            <i class="fas fa-robot fa-2x text-success"></i>
+                            <p>OpenAI Whisper</p>
+                        </div>
+                        <div class="col-md-3">
+                            <i class="fas fa-google fa-2x text-danger"></i>
+                            <p>Google Generative AI</p>
+                        </div>
+                        <div class="col-md-3">
+                            <i class="fas fa-chart-bar fa-2x text-warning"></i>
+                            <p>Advanced Analytics</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Container -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <div id="alertContainer"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentData = {};
+let hasShownResults = false;
+
+// File upload handling
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const progressContainer = document.querySelector('.progress-container');
+const progressBar = document.querySelector('.progress-bar');
+const progressText = document.getElementById('progressText');
+const resultSection = document.getElementById('resultSection');
+const meetingTypeSelect = document.getElementById('meetingType');
+
+// Live recording elements
+const startLiveBtn = document.getElementById('startLiveBtn');
+const pauseLiveBtn = document.getElementById('pauseLiveBtn');
+const resumeLiveBtn = document.getElementById('resumeLiveBtn');
+const stopLiveBtn = document.getElementById('stopLiveBtn');
+const liveStatusEl = document.getElementById('liveStatus');
+
+let mediaRecorder = null;
+let mediaStream = null;
+let liveSessionId = null;
+let chunkQueue = Promise.resolve();
+let finalizeRequested = false;
+
+if (startLiveBtn && pauseLiveBtn && resumeLiveBtn && stopLiveBtn && liveStatusEl) {
+    if (!navigator.mediaDevices || typeof MediaRecorder === 'undefined') {
+        startLiveBtn.disabled = true;
+        pauseLiveBtn.disabled = true;
+        resumeLiveBtn.disabled = true;
+        stopLiveBtn.disabled = true;
+        setLiveStatus('Live recording is not supported in this browser.', 'text-danger');
+    } else {
+        updateLiveControls('idle');
+        setLiveStatus('Idle', 'text-secondary');
+        startLiveBtn.addEventListener('click', startLiveRecording);
+        pauseLiveBtn.addEventListener('click', pauseLiveRecording);
+        resumeLiveBtn.addEventListener('click', resumeLiveRecording);
+        stopLiveBtn.addEventListener('click', stopLiveRecording);
+    }
+}
+
+// Drag and drop functionality
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFileUpload(files[0]);
+    }
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+    }
+});
+
+function handleFileUpload(file) {
+    // Validate file type
+    const fileExtension = file.name.split('.').pop().toLowerCase();
+    const allowedExtensions = ['mp3', 'wav', 'mp4', 'm4a', 'flac', 'aac', 'ogg', 'wma'];
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+        showAlert('Please select a valid audio file.', 'danger');
+        return;
+    }
+
+    // Validate file size (500MB)
+    if (file.size > 500 * 1024 * 1024) {
+        showAlert('File size must be less than 500MB.', 'danger');
+        return;
+    }
+
+    uploadFile(file);
+}
+
+function uploadFile(file) {
+    hasShownResults = false;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Show progress
+    progressContainer.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = 'Uploading file...';
+
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress > 90) progress = 90;
+        progressBar.style.width = progress + '%';
+        
+        if (progress < 30) {
+            progressText.textContent = 'Uploading file...';
+        } else if (progress < 60) {
+            progressText.textContent = 'Processing audio...';
+        } else {
+            progressText.textContent = 'Transcribing with AI...';
+        }
+    }, 500);
+
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        progressText.textContent = 'Complete!';
+
+        if (data.success) {
+            currentData = data.transcription;
+            showAlert('File uploaded and transcribed successfully!', 'success');
+            analyzeMeeting(data.transcription.text);
+        } else {
+            showAlert(data.error || 'Upload failed. Please try again.', 'danger');
+        }
+        
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+        }, 2000);
+    })
+    .catch(error => {
+        clearInterval(progressInterval);
+        progressContainer.style.display = 'none';
+        showAlert('An error occurred during upload. Please try again.', 'danger');
+        console.error('Error:', error);
+    });
+}
+
+function analyzeMeeting(transcript) {
+    const meetingType = document.getElementById('meetingType').value;
+    
+    fetch('/analyze', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            transcript: transcript,
+            meeting_type: meetingType
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            displayResults(data);
+        } else {
+            showAlert(data.error || 'Analysis failed. Please try again.', 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('An error occurred during analysis. Please try again.', 'danger');
+        console.error('Error:', error);
+    });
+}
+
+function displayResults(data) {
+    if (!data) {
+        return;
+    }
+
+    if (typeof data.transcript === 'string' && data.transcript.trim() !== '') {
+        currentData.text = data.transcript;
+    }
+    if (data.metrics) {
+        currentData.metrics = data.metrics;
+    }
+    if (typeof data.summary === 'string' && data.summary.trim() !== '') {
+        currentData.summary = data.summary;
+    }
+
+    // Display transcription
+    document.getElementById('transcriptionContent').innerHTML = 
+        `<div class="transcript-text">${data.transcript || currentData.text}</div>`;
+
+    // Display summary
+    document.getElementById('summaryContent').innerHTML = 
+        `<div class="summary-text">${data.summary || 'Summary not available'}</div>`;
+
+    // Display metrics
+    if (data.metrics) {
+        document.getElementById('durationMetric').textContent = 
+            formatDuration(data.metrics.duration);
+        document.getElementById('wordCountMetric').textContent = 
+            data.metrics.word_count.toLocaleString();
+        
+        const sentimentEl = document.getElementById('sentimentMetric');
+        const sentiment = data.metrics.sentiment;
+        sentimentEl.textContent = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+        sentimentEl.className = `sentiment-${sentiment}`;
+
+        // Display keywords
+        const keywordsContainer = document.getElementById('keywordsContainer');
+        keywordsContainer.innerHTML = '';
+        if (data.metrics.keywords) {
+            data.metrics.keywords.slice(0, 15).forEach(([word, count]) => {
+                const tag = document.createElement('span');
+                tag.className = 'keyword-tag';
+                tag.textContent = `${word} (${count})`;
+                keywordsContainer.appendChild(tag);
+            });
+        }
+    }
+
+    // Show results section
+    resultSection.style.display = 'block';
+    if (!hasShownResults) {
+        hasShownResults = true;
+        resultSection.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function formatDuration(seconds) {
+    if (seconds < 60) {
+        return `${Math.round(seconds)}s`;
+    } else if (seconds < 3600) {
+        return `${Math.round(seconds / 60)}m`;
+    } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.round((seconds % 3600) / 60);
+        return `${hours}h ${minutes}m`;
+    }
+}
+
+function generateWordCloud() {
+    if (!currentData || !currentData.text) {
+        showAlert('No transcript available for word cloud generation.', 'warning');
+        return;
+    }
+
+    const button = event.target;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+
+    fetch('/generate_wordcloud', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            transcript: currentData.text
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.wordcloud) {
+            const container = document.getElementById('wordCloudContainer');
+            container.innerHTML = `<img src="data:image/png;base64,${data.wordcloud}" class="img-fluid" alt="Word Cloud">`;
+        } else {
+            showAlert(data.error || 'Failed to generate word cloud.', 'danger');
+        }
+    })
+    .catch(error => {
+        showAlert('An error occurred while generating word cloud.', 'danger');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-cloud me-2"></i>Generate Word Cloud';
+    });
+}
+
+function generateReport() {
+    if (!currentData || !currentData.text) {
+        showAlert('No data available for report generation.', 'warning');
+        return;
+    }
+
+    const button = event.target;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+
+    fetch('/generate_report', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            filename: 'meeting_analysis',
+            transcript: currentData.text,
+            summary: document.getElementById('summaryContent').textContent,
+            metrics: currentData.metrics || {}
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        } else {
+            throw new Error('Report generation failed');
+        }
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'meeting_report.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showAlert('PDF report generated successfully!', 'success');
+    })
+    .catch(error => {
+        showAlert('Failed to generate PDF report.', 'danger');
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Generate PDF Report';
+    });
+}
+
+function exportData() {
+    if (!currentData) {
+        showAlert('No data available for export.', 'warning');
+        return;
+    }
+
+    const exportData = {
+        transcription: currentData.text,
+        summary: document.getElementById('summaryContent').textContent,
+        metrics: currentData.metrics || {},
+        timestamp: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const url = window.URL.createObjectURL(dataBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'meeting_data.json';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    showAlert('Data exported successfully!', 'success');
+}
+
+function showAlert(message, type) {
+    const alertContainer = document.getElementById('alertContainer');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    alertContainer.appendChild(alertDiv);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+function updateLiveControls(state) {
+    if (!startLiveBtn || !pauseLiveBtn || !resumeLiveBtn || !stopLiveBtn) {
+        return;
+    }
+
+    switch (state) {
+        case 'recording':
+            startLiveBtn.disabled = true;
+            pauseLiveBtn.disabled = false;
+            resumeLiveBtn.disabled = true;
+            stopLiveBtn.disabled = false;
+            break;
+        case 'paused':
+            startLiveBtn.disabled = true;
+            pauseLiveBtn.disabled = true;
+            resumeLiveBtn.disabled = false;
+            stopLiveBtn.disabled = false;
+            break;
+        case 'finalizing':
+            startLiveBtn.disabled = true;
+            pauseLiveBtn.disabled = true;
+            resumeLiveBtn.disabled = true;
+            stopLiveBtn.disabled = true;
+            break;
+        default:
+            startLiveBtn.disabled = false;
+            pauseLiveBtn.disabled = true;
+            resumeLiveBtn.disabled = true;
+            stopLiveBtn.disabled = true;
+            break;
+    }
+}
+
+function setLiveStatus(message, className = 'text-secondary') {
+    if (!liveStatusEl) {
+        return;
+    }
+    liveStatusEl.textContent = message;
+    liveStatusEl.className = className;
+}
+
+async function startLiveRecording() {
+    if (liveSessionId) {
+        return;
+    }
+
+    try {
+        hasShownResults = false;
+        updateLiveControls('finalizing');
+        setLiveStatus('Requesting microphone access...', 'text-warning');
+
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        const response = await fetch('/stream/start', { method: 'POST' });
+        const data = await response.json();
+
+        if (!data.success || !data.session_id) {
+            throw new Error(data.error || 'Unable to start live session.');
+        }
+
+        liveSessionId = data.session_id;
+        chunkQueue = Promise.resolve();
+        finalizeRequested = false;
+
+        mediaRecorder = new MediaRecorder(mediaStream);
+        mediaRecorder.addEventListener('dataavailable', handleLiveData);
+        mediaRecorder.addEventListener('stop', () => {
+            if (finalizeRequested) {
+                finalizeLiveSession();
+            }
+        });
+        mediaRecorder.addEventListener('pause', () => setLiveStatus('Paused', 'text-warning'));
+        mediaRecorder.addEventListener('resume', () => setLiveStatus('Listening...', 'text-success'));
+
+        mediaRecorder.start(2000);
+        updateLiveControls('recording');
+        setLiveStatus('Listening...', 'text-success');
+        resultSection.style.display = 'block';
+        currentData = {};
+    } catch (error) {
+        console.error('Live recording error:', error);
+        showAlert(error.message || 'Unable to start live recording.', 'danger');
+        stopMediaStream();
+        liveSessionId = null;
+        mediaRecorder = null;
+        updateLiveControls('idle');
+        setLiveStatus('Idle', 'text-secondary');
+    }
+}
+
+function handleLiveData(event) {
+    if (!event.data || event.data.size === 0 || !liveSessionId) {
+        return;
+    }
+    sendLiveChunk(event.data);
+}
+
+function sendLiveChunk(blob) {
+    chunkQueue = chunkQueue.then(() => new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            try {
+                const base64Data = reader.result.split(',')[1];
+                const response = await fetch('/stream/chunk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: liveSessionId,
+                        audio_chunk: base64Data
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    updateLiveAnalytics(data);
+                } else if (data.error) {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (err) {
+                console.error('Chunk upload error:', err);
+                showAlert('Live transcription failed for a chunk. Trying to continue...', 'danger');
+            } finally {
+                resolve();
+            }
+        };
+        reader.readAsDataURL(blob);
+    }));
+}
+
+function updateLiveAnalytics(data) {
+    if (!data || !data.success) {
+        return;
+    }
+
+    const payload = {
+        transcript: data.transcript || '',
+        summary: 'Summary will be ready after you stop the recording.',
+        metrics: data.metrics || {}
+    };
+
+    if (payload.transcript) {
+        currentData.text = payload.transcript;
+    }
+    if (payload.metrics) {
+        currentData.metrics = payload.metrics;
+    }
+
+    displayResults(payload);
+}
+
+function pauseLiveRecording() {
+    if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+        return;
+    }
+    try {
+        mediaRecorder.pause();
+        updateLiveControls('paused');
+    } catch (error) {
+        console.error('Pause error:', error);
+        showAlert('Unable to pause recording.', 'danger');
+    }
+}
+
+function resumeLiveRecording() {
+    if (!mediaRecorder || mediaRecorder.state !== 'paused') {
+        return;
+    }
+    try {
+        mediaRecorder.resume();
+        updateLiveControls('recording');
+    } catch (error) {
+        console.error('Resume error:', error);
+        showAlert('Unable to resume recording.', 'danger');
+    }
+}
+
+function stopLiveRecording() {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        return;
+    }
+
+    finalizeRequested = true;
+    updateLiveControls('finalizing');
+    setLiveStatus('Finalizing analysis...', 'text-info');
+
+    try {
+        mediaRecorder.stop();
+    } catch (error) {
+        console.error('Stop error:', error);
+        showAlert('Unable to stop recording cleanly.', 'danger');
+    }
+    stopMediaStream();
+}
+
+async function finalizeLiveSession() {
+    try {
+        await chunkQueue;
+
+        if (!liveSessionId) {
+            return;
+        }
+
+        const response = await fetch('/stream/stop', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                session_id: liveSessionId,
+                meeting_type: meetingTypeSelect ? meetingTypeSelect.value : 'general'
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentData = {
+                text: data.transcript,
+                metrics: data.metrics,
+                summary: data.summary
+            };
+
+            displayResults({
+                transcript: data.transcript,
+                summary: data.summary || 'Summary not available',
+                metrics: data.metrics
+            });
+
+            if (data.error) {
+                showAlert(data.error, 'warning');
+            }
+        } else {
+            showAlert(data.error || 'Failed to finalize live session.', 'danger');
+        }
+    } catch (error) {
+        console.error('Finalize live session error:', error);
+        showAlert('Failed to finalize live session.', 'danger');
+    } finally {
+        liveSessionId = null;
+        mediaRecorder = null;
+        finalizeRequested = false;
+        updateLiveControls('idle');
+        setLiveStatus('Idle', 'text-secondary');
+    }
+}
+
+function stopMediaStream() {
+    if (!mediaStream) {
+        return;
+    }
+    mediaStream.getTracks().forEach(track => track.stop());
+    mediaStream = null;
+}
+</script>
+{% endblock %}
+
+
+
+
