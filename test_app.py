@@ -6,10 +6,13 @@ Simple test script to verify the Meeting Summarizer app setup
 import os
 import sys
 
-def test_imports():
+import pytest
+
+
+def check_imports():
     """Test if all required packages can be imported"""
     print("🧪 Testing package imports...")
-    
+
     try:
         import flask
         print("✅ Flask imported successfully")
@@ -61,6 +64,10 @@ def test_imports():
     
     return True
 
+
+def test_imports():
+    assert check_imports()
+
 def test_directories():
     """Test if required directories exist"""
     print("\n📁 Testing directory structure...")
@@ -98,10 +105,10 @@ def test_environment():
         print("❌ .env file not found")
         print("   Copy env_example.txt to .env and configure your API keys")
 
-def test_app_import():
+def check_app_import():
     """Test if the main app can be imported"""
     print("\n🚀 Testing app import...")
-    
+
     try:
         from app import app, analyzer
         print("✅ Main app imported successfully")
@@ -111,6 +118,29 @@ def test_app_import():
         print(f"❌ App import failed: {e}")
         return False
 
+
+def test_app_import():
+    assert check_app_import()
+
+
+def test_calculate_meeting_metrics_handles_incomplete_segments():
+    from app import analyzer
+
+    transcript = "Progress was made during the productive planning session"
+    segments = [
+        {"start": 2.0, "end": 5.0, "speaker": "Alice"},
+        {"start": 1.0, "end": 3.0},
+        {"start": None, "end": 10.0, "speaker": "Bob"},
+        {"start": 7.0, "end": 9.5, "speaker": "Alice"},
+        "invalid",
+    ]
+
+    metrics = analyzer.calculate_meeting_metrics(transcript, segments)
+
+    assert metrics["duration"] == pytest.approx(9.5)
+    assert metrics["speaker_stats"]["Alice"] == pytest.approx(5.5)
+    assert metrics["speaker_stats"]["Unknown"] == pytest.approx(2.0)
+
 def main():
     """Main test function"""
     print("🎤 Meeting Summarizer & Analytics App - Setup Test")
@@ -119,10 +149,10 @@ def main():
     all_tests_passed = True
     
     # Run tests
-    all_tests_passed &= test_imports()
+    all_tests_passed &= check_imports()
     test_directories()
     test_environment()
-    all_tests_passed &= test_app_import()
+    all_tests_passed &= check_app_import()
     
     print("\n" + "=" * 60)
     if all_tests_passed:

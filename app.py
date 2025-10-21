@@ -174,16 +174,43 @@ class MeetingAnalyzer:
     
     def calculate_meeting_metrics(self, transcript, segments):
         """Calculate various meeting metrics"""
-        total_duration = segments[-1]['end'] if segments else 0
+        # Determine the total duration while being tolerant to incomplete
+        # or unsorted segment data returned by the transcription service.
+        def _is_number(value):
+            return isinstance(value, (int, float))
+
+        total_duration = 0.0
+        if segments:
+            total_duration = max(
+                (
+                    float(segment.get('end'))
+                    for segment in segments
+                    if (
+                        isinstance(segment, dict)
+                        and _is_number(segment.get('end'))
+                        and _is_number(segment.get('start'))
+                    )
+                ),
+                default=0.0,
+            )
+
         word_count = len(transcript.split())
-        
+
         # Calculate speaking time per speaker (if available)
         speaker_stats = {}
-        if segments and 'speaker' in segments[0]:
-            for segment in segments:
-                speaker = segment.get('speaker', 'Unknown')
-                duration = segment['end'] - segment['start']
-                speaker_stats[speaker] = speaker_stats.get(speaker, 0) + duration
+        for segment in segments or []:
+            if not isinstance(segment, dict):
+                continue
+
+            speaker = segment.get('speaker', 'Unknown')
+            start_time = segment.get('start')
+            end_time = segment.get('end')
+
+            if not (_is_number(start_time) and _is_number(end_time)):
+                continue
+
+            duration = max(end_time - start_time, 0)
+            speaker_stats[speaker] = speaker_stats.get(speaker, 0) + duration
         
         return {
             "duration": total_duration,
